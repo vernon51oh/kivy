@@ -193,14 +193,26 @@ class MainScreen(Screen):
         )
         self.enterCounts.bind(on_press=self.enterCounts_pressed)
         self.layout.add_widget(self.enterCounts)
-
+        self.auditCounts = MDRaisedButton(
+            text='Audit Counts',
+            size_hint=(.25, .10),
+            pos_hint={'center_x': 0.5, 'y': 0.75}
+        )
+        self.auditCounts.bind(on_press=self.auditCounts_pressed)
+        self.layout.add_widget(self.auditCounts)
+        self.syncToHostbtn = MDRaisedButton(
+            text='Sync to Host',
+            size_hint=(.25, .10),
+            pos_hint={'center_x': 0.5, 'y': 0.6}
+        )
+        self.syncToHostbtn.bind(on_press=self.syncToHost_pressed)
+        self.layout.add_widget(self.syncToHostbtn)
         self.otpBtn = MDRaisedButton(
             text='Submit Code',
             size_hint=(.25, .10),
-            pos_hint={'center_x': 0.5, 'y': 0.79}
+            pos_hint={'center_x': 0.5, 'y':-.5}
         )
         self.otpBtn.bind(on_press=self.otpBtn_pressed)
-
         self.otpCode = CustomMDTextField(
             multiline=False,
             input_filter='int',
@@ -217,8 +229,53 @@ class MainScreen(Screen):
         self.layout.add_widget(self.otpBtn)
         self.layout.add_widget(self.otpCode)
 
+        self.auditOtpBtn = MDRaisedButton(
+            text='Submit Code',
+            size_hint=(.25, .10),
+            pos_hint={'center_x': 0.5, 'y': 0.79}
+        )
+        self.auditOtpBtn.bind(on_press=self.otpBtn_audit_pressed)
+
+
+        self.auditOtpCode = CustomMDTextField(
+            multiline=False,
+            input_filter='int',
+            size_hint=(.25, .10),
+            pos_hint={'center_x': 0.5, 'y': 0.9},
+            mode="fill",
+            line_color_focus=(0, 1, 0, 1),  # Green line when focused
+            line_color_normal=(0, 0, 1, 1),  # Blue line when not focused
+        )
+        self.auditOtpCode.fill_color = (0.9, 0.9, 0.9, 1)  # Light gray background color
+        self.auditOtpCode.fill_color_focus = (0, 0, 1, 1)
+        self.auditOtpCode.fill_color_normal = (0.9, 0.9, 0.9, 1)
+        self.auditOtpCode.bind(on_text_validate=self.on_enter_audit_otp)
+        self.layout.add_widget(self.auditOtpBtn)
+        self.layout.add_widget(self.auditOtpCode)
+
     def reset(self):
         """Reset logic and variables for MainScreen."""
+        global access
+        accessNumber = int(access)
+        print('Access:', accessNumber)
+        if accessNumber>= 5:
+            self.auditCounts.disabled = False
+            self.auditCounts.text = 'Audit Counts'
+            self.auditCounts.md_bg_color = (0, 1, 0, 1)
+            self.auditCounts.text_color = (0, 0, 0, 1)  # Black text color
+            self.syncToHostbtn.disabled = False
+            self.syncToHostbtn.text = 'Sync to Host'
+            self.syncToHostbtn.md_bg_color = (0, 0, 1, 1)
+            self.syncToHostbtn.text_color = (1, 1, 1, 1)
+           
+           
+        else:
+            self.auditCounts.disabled = True
+            self.auditCounts.text = 'Audit Counts (Access Denied)'
+            self.auditCounts.md_bg_color = (1, 0, 0, 1)  # Red background color
+            self.syncToHostbtn.disabled = True
+            self.syncToHostbtn.text = 'Sync to Host (Access Denied)'
+            self.syncToHostbtn.md_bg_color = (0, 0, 1, 1)  # Red background color
         global unlocked
         calculations = Calculations(store)
         self.last_count_date = calculations.get_last_count_date()
@@ -251,8 +308,10 @@ class MainScreen(Screen):
             self.layout.clear_widgets()
             self.layout.add_widget(self.welcome_label)
             self.layout.add_widget(self.enterCounts)
-            self.layout.add_widget(MDLabel(text='Current Business day is {}'.format(self.last_count_date),theme_text_color="Custom", text_color=(0, 0, 1, 1), font_size='20sp', pos_hint={'center_x': 0.85, 'y': 0.16}))
-            self.layout.add_widget(MDLabel(text='Last count was on: {}'.format(self.last_count_date), theme_text_color="Custom", text_color=(1, 0, 0, 1), font_size='20sp', pos_hint={'center_x': 0.85, 'y': 0.1}))
+            self.layout.add_widget(self.auditCounts)
+            self.layout.add_widget(self.syncToHostbtn)
+            self.layout.add_widget(MDLabel(text='Current Business day is {}'.format(self.last_count_date),theme_text_color="Custom", text_color=(0, 0, 1, 1), font_size='20sp', pos_hint={'center_x': 0.85, 'y': -0.1}))
+            self.layout.add_widget(MDLabel(text='Last count was on: {}'.format(self.last_count_date), theme_text_color="Custom", text_color=(1, 0, 0, 1), font_size='20sp', pos_hint={'center_x': 0.85, 'y': -0.15}))
             self.enterCounts.focus = True
     def on_pre_enter(self):
         """Reinitialize logic when the screen is about to be displayed."""
@@ -261,11 +320,23 @@ class MainScreen(Screen):
     def logoutBtn_pressed(self, instance):
         self.manager.current = 'login'
 
+    def syncToHost_pressed(self, instance):
+        sync=UpdateSmokes(store)
+        message=sync.SyncToHost()
+        if message == True:
+            message='Sync to Host was successful'
+            self.layout.add_widget(MDLabel(text=message, color=(1, 0, 0, 1), font_size='20sp', pos_hint={'center_x': 0.5, 'y': 0.2}))
+        else:
+            message='Sync to Host was not successful'
+        self.layout.add_widget(MDLabel(text=message, color=(1, 0, 0, 1), font_size='20sp', pos_hint={'center_x': 0.5, 'y': 0.2}))
     def enterCounts_pressed(self, instance):
         self.manager.current = 'enterCounts'
 
     def on_enter_otp(self, instance):
         self.otpBtn_pressed(self)
+
+    def on_enter_audit_otp(self, instance):
+        self.otpBtn_audit_pressed(self)
 
     def otpBtn_pressed(self, instance):
         otpValue = self.otpCode.text
@@ -273,7 +344,7 @@ class MainScreen(Screen):
         if totp.verify(otpValue):
             global unlocked
             unlocked = True
-            self.manager.current = 'enterCounts'
+            self.reset()
         else:
             self.layout.add_widget(MDLabel(
                 text='Invalid OTP',
@@ -282,6 +353,41 @@ class MainScreen(Screen):
                 font_size='20sp',
                 pos_hint={'center_x': 0.5, 'y': 0.7}
                 ))
+    def otpBtn_audit_pressed(self, instance):
+        otpValue = self.auditOtpCode.text
+        print('OTP:', otpValue)
+        
+        if totp.verify(otpValue):
+            # If OTP is valid, navigate to the 'auditCounts' screen
+            self.manager.current = 'auditCounts'
+        else:
+            # Clear all widgets from the layout
+            self.layout.clear_widgets()
+
+            # Add a label to indicate the OTP is invalid
+            invalid_label = MDLabel(
+                text='Invalid Code Pleaese try again',
+                theme_text_color="Custom",
+                text_color=(1, 0, 0, 1),  # Red text color
+                font_size='20sp',
+                pos_hint={'center_x': 0.87, 'y': 0.2}  # Adjust position as needed
+            )
+            self.layout.add_widget(invalid_label)
+
+            # Re-add the OTP input field and button
+            self.auditOtpCode.text = ''  # Clear the OTP input field
+            self.auditOtpCode.focus = True  # Set focus to the OTP input field
+            self.layout.add_widget(self.auditOtpCode)
+            self.layout.add_widget(self.auditOtpBtn)
+                    
+    def auditCounts_pressed(self, instance):
+        self.layout.clear_widgets()
+        self.code=(MDLabel(text='Enter Authorization code to access Audit Counts', theme_text_color="Custom", text_color=(1, 0, 0, 1), font_size='20sp', pos_hint={'center_x': 0.8, 'y': 0.2}))
+        self.layout.add_widget(self.code)
+        self.auditOtpCode.focus = True
+        self.layout.add_widget(self.auditOtpBtn)
+        self.layout.add_widget(self.auditOtpCode)
+        
 
     def _update_rect(self, instance, value):
         self.rect.size = instance.size
@@ -350,17 +456,24 @@ class EnterCounts(Screen):
         if self.last_count_date < self.current_date:
             self.nextDay = self.last_count_date + timedelta(days=1)
             self.bussinessDay = self.nextDay
-            self.add_widget(MDLabel(text='Entering Counts for : {}'.format(self.nextDay), theme_text_color="Custom", text_color=(1, 0, 0, 1),halign="center"))
+            self.countday=(MDLabel(text='Entering Counts for : {}'.format(self.nextDay), theme_text_color="Custom", text_color=(1, 0, 0, 1),halign="center"))
+            self.remove_widget(self.countday)
+            self.layout.add_widget(self.countday)
         else :
-            self.add_widget(MDLabel(text='Entering Counts for : {}'.format(self.current_date), theme_text_color="Custom", text_color=(0, 1, 0, 1),halign="center"))            
+            
+            self.countday=(MDLabel(text='Entering Counts for : {}'.format(self.current_date), theme_text_color="Custom", text_color=(0, 0, 1, 1),halign="center"))            
+            
+            self.remove_widget(self.countday)
+            self.layout.add_widget(self.countday)
             self.bussinessDay = self.current_date
         self.counts.focus = True
 
     def shift_filter(self, value, from_undo):
-        value=int(value)
-        print(value)
-        print(type(value))
-        
+        if value.isdigit():
+            value=int(value)
+            print(value)
+            print(type(value))
+            
         if value in (1, 2,3,4):
             return str(value)
             
@@ -427,6 +540,133 @@ class EnterCounts(Screen):
     def set_focus(self, *args):
         self.counts.focus = True
     
+class AuditCounts(Screen):
+    def __init__(self, **kwargs):
+        super(AuditCounts, self).__init__(**kwargs)
+        self.businessDay = None
+        self.layout = MDGridLayout(cols=2, row_force_default=True, row_default_height=50, spacing=20, padding=20)
+        with self.layout.canvas.before:
+            Color(0.1, 0.1, 0.1, 0.2)  # Dark gray color
+            self.rect = Rectangle(size=self.size, pos=self.pos)
+        self.layout.bind(size=self._update_rect, pos=self._update_rect)
+        self.counts =CustomMDTextField(multiline=False,input_filter='int',mode="fill")
+        self.counts.bind(on_text_validate=self.on_enter_counts)
+        self.counts.fill_color=(0.9, 0.9, 0.9, 1)  # Light gray background color
+        self.counts.fill_color_focus=(0,0,1,1)
+        self.counts.fill_color_normal=(0.9, 0.9, 0.9, 1)# Light gray background color
+        self.counts.bind(on_text_validate=self.on_enter_counts)
+        self.counts.bind(text=self.enforce_character_limit)
+       
+        self.comments = CustomMDTextField(multiline=True,mode="fill",max_text_length=150,
+            line_color_focus=(0, 1, 0, 1),  # Green line when focused
+            line_color_normal=(0, 0, 1, 1),  # Blue line when not focused
+            )
+        self.comments.fill_color=(0.9, 0.9, 0.9, 1)  # Light gray background color
+        self.comments.fill_color_focus=(0,0,1,1)
+        self.comments.fill_color_normal=(0.9, 0.9, 0.9, 1)
+        self.comments.bind(on_text_validate=self.on_enter_counts)
+        self.comments.bind(text=self.enforce_character_limit) 
+        self.btn1 = MDRaisedButton(text='Submit')
+        self.btn1.bind(on_press=self.btn_pressed)
+        self.btn2 = MDRaisedButton(text='Main Menu')
+        self.btn2.bind(on_press=self.btn2_pressed)
+        self.add_widget(self.layout)
+        
+        
+
+    def reset(self):
+        
+        self.layout.clear_widgets()
+        self.layout.add_widget(MDLabel(text='Enter Audit Counts'))
+        self.layout.add_widget(self.counts)
+        
+        self.layout.add_widget(MDLabel(text='Enter Comments'))
+        self.layout.add_widget(self.comments)
+        self.layout.add_widget(self.btn1)
+        self.layout.add_widget(MDLabel())
+        self.layout.add_widget(self.btn2, index=0)
+        calculations = Calculations(store)
+        self.last_count_date = calculations.get_last_count_date()
+        self.current_date = datetime.now().date()
+        print('Last count date:', self.last_count_date)
+        print('Current date:', self.current_date)
+        self.last_count=calculations.get_last_count()
+        if self.last_count_date < self.current_date:
+            self.nextDay = self.last_count_date + timedelta(days=1)
+            self.bussinessDay = self.nextDay
+            self.add_widget(MDLabel(text='Entering Audit Counts for : {}'.format(self.nextDay), theme_text_color="Custom", text_color=(1, 0, 0, 1),halign="center"))
+        else :
+            self.add_widget(MDLabel(text='Entering  Audit Counts for : {}'.format(self.current_date), theme_text_color="Custom", text_color=(0, 0, 1, 1),halign="center"))            
+            self.bussinessDay = self.current_date
+        self.counts.focus = True
+
+    def shift_filter(self, value, from_undo):
+        value=int(value)
+        print(value)
+        print(type(value))
+        
+        if value in (1, 2,3,4):
+            return str(value)
+            
+        return ''
+    
+    def enforce_character_limit(self, instance, value):
+        print(instance,value)
+        if instance == self.comments:
+            # Limit the number of characters to 150
+            if len(value) > 150:
+                instance.text = value[:150]
+        elif instance == self.counts:
+            # Limit the number of characters to 4
+            if len(value) > 4:
+                instance.text = value[:4]
+        
+        
+
+    def on_enter_counts(self, instance):
+        self.comments.focus= True
+    
+    def on_enter_comments(self, instance):  
+        self.btn_pressed(self)
+    def btn_pressed(self, instance):
+        
+        print('Counts:', self.counts.text)
+       
+        print('BusinessDay:',self.bussinessDay)
+        print('Comments:', self.comments.text)
+        print('User:', user)
+        print('Access:', access)
+        now = dt.datetime.now()
+        update=UpdateSmokes(store)
+        update.setAuditCounts(self.counts.text, self.bussinessDay, self.last_count[0][5],self.comments.text,user)
+                           
+        Logger.info(f'Counts entered: {self.counts.text}  by user {user} @ {now}')
+        if self.current_date == self.bussinessDay:
+            Logger.info(f'Counts entered for {self.current_date}')
+            self.manager.current = 'menu'
+        else:
+            Logger.info(f'Counts entered for {self.bussinessDay}')
+            self.manager.current = 'menu'
+        self.counts.text = ''
+    
+        self.comments.text = ''
+
+    def btn2_pressed(self, instance):
+        self.manager.current = 'menu'
+
+    
+    def on_pre_enter(self):
+        
+        self.reset()
+        Clock.schedule_once(self.set_focus, 0.1)  # Delay to ensure the screen is fully loaded
+
+    def _update_rect(self, instance, value):
+        self.rect.size = instance.size
+        self.rect.pos = instance.pos
+
+    def set_focus(self, *args):
+        self.counts.focus = True
+
 
 class SmokesApp(MDApp):
 
@@ -438,6 +678,7 @@ class SmokesApp(MDApp):
         sm.add_widget(MainScreen(name='menu'))
         sm.add_widget(StoreOffline(name='storeoffline'))
         sm.add_widget(EnterCounts(name='enterCounts'))
+        sm.add_widget(AuditCounts(name='auditCounts'))
         sm.username=''
         sm.is_login = False
         print(is_login)
